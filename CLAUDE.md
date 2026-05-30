@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What is Flufu
 
-Flufu is a Go CLI wrapper that runs Claude Code through a PTY and overlays an animated ASCII pet (duck) on top of the terminal UI. It is also experimenting with local LLM inference via llama.cpp (through the `yzma` library) to potentially add on-device AI features.
+Flufu is a Go CLI wrapper that runs Claude Code through a PTY and overlays an animated ASCII pet (duck) on top of the terminal UI. The duck periodically displays AI-generated jokes in a speech bubble using a local LLM (llama.cpp via the `yzma` library).
 
 ## Commands
 
@@ -16,24 +16,32 @@ just test         # Run tests and go vet
 just lint         # Run golangci-lint
 ```
 
+Run a single test: `go test -v -run TestName ./internal/package/`
+
 When running locally during development, set `YZMA_LIB=./lib` — `just run` does this automatically. The binary resolves `lib/` relative to the executable path at runtime.
 
 ## Architecture
 
-The app runs two concurrent goroutines coordinated by `internal/orchestrator`:
+Three concurrent goroutines coordinated by `internal/orchestrator/apps.go`, all sharing a cancellable context:
 
-1. **Agent** (`internal/agent/terminal.go`) — Spawns `claude` via PTY, wires stdin/stdout, handles terminal resize via `SIGWINCH`. When the agent exits, it cancels the shared context.
-2. **Pet** (`internal/pet/render.go`) — Renders an animated ASCII duck overlay using ANSI escape sequences, anchored to the bottom-right corner. Clears on context cancel.
+1. **AI** (`internal/ai/`) — Loads llama.cpp and the model in the background; closes the `ready` channel on `ai.Instance` when warm. Other goroutines gate on `<-aiInstance.Ready()`.
+2. **Agent** (`internal/agent/terminal.go`) — Spawns `claude` via PTY, wires stdin/stdout, handles terminal resize via `SIGWINCH`. When the agent exits, it cancels the shared context, which shuts down the other goroutines.
+3. **Pet** (`internal/pet/render.go`) — Renders an animated ASCII duck overlay using ANSI escape sequences anchored to the bottom-right corner. Once the AI is ready, fetches jokes via `aiInstance.Joke()` on a timer and draws them in a speech bubble (see `bubble.go`). Clears both duck and bubble on context cancel.
+
+### Pet rendering details (`internal/pet/`)
+
+- `pets.go` — Static ASCII frame definitions, keyed by pet name (currently only `"duck"`).
+- `render.go` — Ticker-driven render loop: clears previous frame, advances animation, manages the joke fetch/display lifecycle.
+- `bubble.go` — Draws/clears a word-wrapped speech bubble to the left of the pet using ANSI cursor positioning and DEC save/restore (`\0337`/`\0338`).
 
 ### Local LLM (`internal/ai/`)
 
-Wraps the `yzma`/`llama.cpp` stack for on-device inference:
-- `lama.go` — loads the shared llama libraries from `YZMA_LIB` or `<exe>/lib`
-- `model.go` — downloads (on first run) and initializes `Qwen2.5-1.5B-Instruct-Q4_K_M` from HuggingFace; stores the model file via XDG config path (`~/.config/flufu/`)
-- `generation.go` — token-by-token generation loop
-- `prompt.go` — applies the model's chat template via `llama.ChatApplyTemplate`
+- `lama.go` — Loads the shared llama libraries from `YZMA_LIB` or `<exe>/lib`.
+- `model.go` — Downloads (on first run) and initializes `Qwen2.5-1.5B-Instruct-Q4_K_M` from HuggingFace; stores the model at `~/.config/flufu/` (XDG).
+- `generation.go` — Token-by-token generation loop; `Joke()` uses a hardcoded duck-persona prompt.
+- `prompt.go` — Builds chat-templated prompts via `llama.ChatApplyTemplate`.
 
-The `chat` subcommand (`cmd/chat.go`) triggers this flow directly for testing. The design intent (noted in `model.go`) is for `ai.Init` to run in a goroutine keeping the model warm, with `ai.Respond(prompt)` used for inference.
+The `chat` subcommand (`cmd/chat.go`) runs the full AI init+generate flow interactively for testing without launching Claude Code.
 
 ### Config
 
@@ -41,4 +49,8 @@ The `chat` subcommand (`cmd/chat.go`) triggers this flow directly for testing. T
 
 ## Linter
 
-`golangci-lint` is configured with a large strict ruleset (see `.golangci.yml`). Notable enforced rules: `err113` (no bare error comparisons), `wrapcheck` (all external errors must be wrapped), `mnd` (no magic numbers without named constants), `exhaustive` (exhaustive switches on enums).
+`golangci-lint` is configured with a large strict ruleset (see `.golangci.yml`). Notable enforced rules:
+- `err113` — no bare `errors.New` in comparisons; define sentinel errors as package-level vars
+- `wrapcheck` — all errors from external packages must be wrapped with `fmt.Errorf("...: %w", err)`
+- `mnd` — no magic numbers; use named constants
+- `exhaustive` — switches on enum types must be exhaustive
