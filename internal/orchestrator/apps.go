@@ -7,12 +7,21 @@ import (
 	"sync"
 
 	"github.com/therealironduck/flufu/internal/agent"
+	"github.com/therealironduck/flufu/internal/ai"
 	"github.com/therealironduck/flufu/internal/pet"
 )
 
 func Start(ctx context.Context) {
 	var wg sync.WaitGroup
 	cancelCtx, cancel := context.WithCancel(ctx)
+
+	aiInstance := ai.New()
+
+	wg.Go(func() {
+		if err := aiInstance.Init(cancelCtx); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to init AI: %v", err)
+		}
+	})
 
 	wg.Go(func() {
 		if err := agent.Spawn(ctx); err != nil {
@@ -23,7 +32,7 @@ func Start(ctx context.Context) {
 	})
 
 	wg.Go(func() {
-		pet.Render(cancelCtx)
+		pet.Render(cancelCtx, aiInstance)
 	})
 
 	wg.Wait()

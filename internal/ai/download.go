@@ -24,22 +24,18 @@ func loadModel(ctx context.Context) (string, error) {
 		return path, fmt.Errorf("model setup failed: %w", err)
 	}
 
-	fmt.Printf("%s", path)
 	return path, nil
 }
 
 func ensureModel(ctx context.Context, path string) error {
 	if _, err := os.Stat(path); err == nil {
-		fmt.Printf("Model ready: %s\n", path)
 		return nil
 	}
 
-	fmt.Printf("Downloading model (first run only):\n  %s\n", modelURL)
 	if err := downloadFile(ctx, path, modelURL); err != nil {
 		return err
 	}
 
-	fmt.Printf("Saved to: %s\n\n", path)
 	return nil
 }
 
@@ -91,7 +87,6 @@ func downloadFile(ctx context.Context, dest, url string) error {
 	}
 
 	f.Close()
-	fmt.Println()
 
 	err = os.Rename(tmp, dest)
 	if err != nil {

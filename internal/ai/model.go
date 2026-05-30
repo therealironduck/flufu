@@ -14,7 +14,7 @@ const (
 	maxTokens     = int32(1024)
 )
 
-func (a *AiInstance) Init(ctx context.Context) error {
+func (a *Instance) Init(ctx context.Context) error {
 	if err := initLlama(); err != nil {
 		return fmt.Errorf("failed to init llama: %w", err)
 	}
@@ -56,7 +56,6 @@ func (a *AiInstance) Init(ctx context.Context) error {
 func initModel(path string) (ctx llama.Context, model llama.Model, vocab llama.Vocab, sampler llama.Sampler, err error) {
 	model, err = llama.ModelLoadFromFile(path, llama.ModelDefaultParams())
 	if err != nil || model == 0 {
-		fmt.Printf("\n\n-----\n\n%v\n\n------\n", path)
 		return
 	}
 
@@ -64,7 +63,6 @@ func initModel(path string) (ctx llama.Context, model llama.Model, vocab llama.V
 
 	ctx, err = llama.InitFromModel(model, llama.ContextDefaultParams())
 	if err != nil || ctx == 0 {
-		fmt.Printf("HELLLOOO2")
 		return
 	}
 
