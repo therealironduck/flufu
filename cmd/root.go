@@ -11,7 +11,7 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "flufu",
 	Short: "Wrapper for AI coding assistants that add a small coding buddy",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		fmt.Println("Hello World!")
 	},
 }
@@ -26,5 +26,4 @@ func Execute() {
 }
 
 func init() {
-	// TODO
 }
