@@ -14,11 +14,10 @@ const (
 	maxTokens     = int32(1024)
 )
 
-func Init(ctx context.Context) error {
+func (a *AiInstance) Init(ctx context.Context) error {
 	if err := initLlama(); err != nil {
 		return fmt.Errorf("failed to init llama: %w", err)
 	}
-
 	defer llama.Close()
 
 	path, err := loadModel(ctx)
@@ -43,13 +42,13 @@ func Init(ctx context.Context) error {
 		llama.SamplerFree(sampler)
 	}()
 
-	prompt := buildPrompt(model, "What are these yellow animals called that live in ponds and swim?")
-	response, err := generate(llamaCtx, vocab, sampler, prompt)
-	if err != nil {
-		return fmt.Errorf("failed to generate response: %w", err)
-	}
+	a.llamaCtx = llamaCtx
+	a.model = model
+	a.sampler = sampler
+	a.vocab = vocab
+	close(a.ready)
 
-	fmt.Printf("\n\n%s\n\n", response)
+	<-ctx.Done()
 
 	return nil
 }
@@ -81,11 +80,3 @@ func initModel(path string) (ctx llama.Context, model llama.Model, vocab llama.V
 
 	return
 }
-
-/**
- * ai.Init() <-- this should run in a go func and keep the model alive until ctx cancel
- * ---
- * ai.Respond("my cool prompt") -- string / error
- *
- * I was thinking we are using
- */

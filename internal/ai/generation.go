@@ -1,8 +1,21 @@
 package ai
 
-import "github.com/hybridgroup/yzma/pkg/llama"
+import (
+	"fmt"
+
+	"github.com/hybridgroup/yzma/pkg/llama"
+)
 
 func generate(ctx llama.Context, vocab llama.Vocab, sampler llama.Sampler, prompt string) (string, error) {
+	mem, err := llama.GetMemory(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to get memory: %w", err)
+	}
+
+	if err := llama.MemoryClear(mem, true); err != nil {
+		return "", fmt.Errorf("failed to clear memory: %w", err)
+	}
+
 	tokens := llama.Tokenize(vocab, prompt, true, true)
 	batch := llama.BatchGetOne(tokens)
 
@@ -28,4 +41,8 @@ func generate(ctx llama.Context, vocab llama.Vocab, sampler llama.Sampler, promp
 	}
 
 	return string(result), nil
+}
+
+func (a *AiInstance) Generate(prompt string) (string, error) {
+	return generate(a.llamaCtx, a.vocab, a.sampler, prompt)
 }

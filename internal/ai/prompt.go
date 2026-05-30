@@ -18,3 +18,7 @@ func buildPrompt(model llama.Model, userMessage string) string {
 	n := llama.ChatApplyTemplate(template, messages, true, buf)
 	return string(buf[:n])
 }
+
+func (ai *AiInstance) MakePrompt(message string) string {
+	return buildPrompt(ai.model, message)
+}
