@@ -35,5 +35,12 @@ func Start(ctx context.Context) {
 		pet.Render(cancelCtx, aiInstance)
 	})
 
+	wg.Go(func() {
+		if err := pet.Listen(cancelCtx); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to listen for socket: %v", err)
+			os.Exit(1)
+		}
+	})
+
 	wg.Wait()
 }

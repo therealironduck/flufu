@@ -18,6 +18,9 @@ const (
 )
 
 func Spawn(ctx context.Context) error {
+	// Register claude hook
+	registerHooks()
+
 	// Start Claude Code and run it through PTY
 	cmd := exec.CommandContext(ctx, "claude")
 	cmd.Env = os.Environ()
