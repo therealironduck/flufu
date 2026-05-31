@@ -8,21 +8,18 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/therealironduck/flufu/internal/ai"
 	"golang.org/x/term"
 )
 
 const (
-	renderInterval  = 50 * time.Millisecond
-	nextFrameTicks  = 6
-	paddingBottom   = -5
-	pet             = "duck"
-	jokeInterval    = 10 * time.Second
-	jokeDuration    = 4 * time.Second
-	jokeFetchBuffer = 30 * time.Second
+	renderInterval = 50 * time.Millisecond
+	nextFrameTicks = 6
+	paddingBottom  = -5
+	pet            = "duck"
+	msgDuration    = 4 * time.Second
 )
 
-func Render(ctx context.Context, aiInstance *ai.Instance) {
+func Render(ctx context.Context, msgCh <-chan string) {
 	ticker := time.NewTicker(renderInterval)
 	defer ticker.Stop()
 
@@ -30,11 +27,9 @@ func Render(ctx context.Context, aiInstance *ai.Instance) {
 	nextFrameTick := 0
 
 	var (
-		currentJoke   string
+		currentMsg    string
 		lastBubblePos bubblePos
-		jokeExpiry    time.Time
-		nextJokeAt    time.Time
-		jokeCh        = make(chan string, 1)
+		msgExpiry     time.Time
 	)
 
 	for {
@@ -44,10 +39,9 @@ func Render(ctx context.Context, aiInstance *ai.Instance) {
 			clearOverlay(pet, frame)
 			return
 
-		case j := <-jokeCh:
-			currentJoke = j
-			jokeExpiry = time.Now().Add(jokeDuration)
-			nextJokeAt = time.Now().Add(jokeInterval)
+		case msg := <-msgCh:
+			currentMsg = msg
+			msgExpiry = time.Now().Add(msgDuration)
 
 		case <-ticker.C:
 			clearBubble(lastBubblePos)
@@ -59,31 +53,13 @@ func Render(ctx context.Context, aiInstance *ai.Instance) {
 				frame = (frame + 1) % len(pets[pet])
 			}
 
-			if currentJoke != "" && time.Now().After(jokeExpiry) {
-				currentJoke = ""
-			}
-
-			select {
-			case <-aiInstance.Ready():
-				if nextJokeAt.IsZero() || time.Now().After(nextJokeAt) {
-					nextJokeAt = time.Now().Add(jokeDuration + jokeInterval + jokeFetchBuffer)
-					go func() {
-						joke, err := aiInstance.Joke()
-						if err != nil {
-							return
-						}
-						select {
-						case jokeCh <- strings.TrimSpace(joke):
-						default:
-						}
-					}()
-				}
-			default:
+			if currentMsg != "" && time.Now().After(msgExpiry) {
+				currentMsg = ""
 			}
 
 			drawOverlay(pet, frame)
-			if currentJoke != "" {
-				lastBubblePos = drawBubble(pet, frame, currentJoke)
+			if currentMsg != "" {
+				lastBubblePos = drawBubble(pet, frame, currentMsg)
 			}
 		}
 	}

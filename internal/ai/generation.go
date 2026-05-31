@@ -47,6 +47,3 @@ func (a *Instance) Generate(prompt string) (string, error) {
 	return generate(a.llamaCtx, a.vocab, a.sampler, prompt)
 }
 
-func (a *Instance) Joke() (string, error) {
-	return generate(a.llamaCtx, a.vocab, a.sampler, buildJokePrompt(a.model))
-}

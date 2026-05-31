@@ -8,10 +8,6 @@ import (
 	"os"
 )
 
-const (
-	hookLogPath = "/tmp/flufu-hook.log"
-	hookLogPerm = 0o644
-)
 
 func getSocketForPid(pid int) string {
 	return fmt.Sprintf("/tmp/flufu-%d.sock", pid)
@@ -21,7 +17,7 @@ func getSocket() string {
 	return getSocketForPid(os.Getpid())
 }
 
-func Listen(ctx context.Context) error {
+func Listen(ctx context.Context, msgCh chan<- string) error {
 	lc := net.ListenConfig{}
 
 	ln, err := lc.Listen(ctx, "unix", getSocket())
@@ -35,24 +31,30 @@ func Listen(ctx context.Context) error {
 		ln.Close()
 	}()
 
-	con, err := ln.Accept()
-	if err != nil {
-		if ctx.Err() != nil {
-			return nil
+	for {
+		con, err := ln.Accept()
+		if err != nil {
+			if ctx.Err() != nil {
+				return nil
+			}
+
+			return fmt.Errorf("cant accept unix socket connection: %w", err)
 		}
 
-		return fmt.Errorf("cant accept unix socket connection: %w", err)
+		go func() {
+			defer con.Close()
+
+			msg, err := io.ReadAll(con)
+			if err != nil {
+				return
+			}
+
+			select {
+			case msgCh <- string(msg):
+			default:
+			}
+		}()
 	}
-	defer con.Close()
-
-	msg, err := io.ReadAll(con)
-	if err != nil {
-		return fmt.Errorf("cant read from unix socket: %w", err)
-	}
-
-	_ = os.WriteFile(hookLogPath, append(msg, '\n'), hookLogPerm)
-
-	return nil
 }
 
 func Send(ctx context.Context, pid int, message string) error {
