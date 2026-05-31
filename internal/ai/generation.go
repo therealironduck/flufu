@@ -46,4 +46,3 @@ func generate(ctx llama.Context, vocab llama.Vocab, sampler llama.Sampler, promp
 func (a *Instance) Generate(prompt string) (string, error) {
 	return generate(a.llamaCtx, a.vocab, a.sampler, prompt)
 }
-

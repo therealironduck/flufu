@@ -8,7 +8,6 @@ import (
 	"os"
 )
 
-
 func getSocketForPid(pid int) string {
 	return fmt.Sprintf("/tmp/flufu-%d.sock", pid)
 }
