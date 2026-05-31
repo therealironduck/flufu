@@ -8,6 +8,11 @@ import (
 	"os"
 )
 
+const (
+	hookLogPath = "/tmp/flufu-hook.log"
+	hookLogPerm = 0o644
+)
+
 func getSocketForPid(pid int) string {
 	return fmt.Sprintf("/tmp/flufu-%d.sock", pid)
 }
@@ -45,7 +50,7 @@ func Listen(ctx context.Context) error {
 		return fmt.Errorf("cant read from unix socket: %w", err)
 	}
 
-	fmt.Println(string(msg))
+	_ = os.WriteFile(hookLogPath, append(msg, '\n'), hookLogPerm)
 
 	return nil
 }

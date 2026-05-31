@@ -19,7 +19,9 @@ const (
 
 func Spawn(ctx context.Context) error {
 	// Register claude hook
-	registerHooks()
+	if err := registerHooks(); err != nil {
+		return fmt.Errorf("register hooks: %w", err)
+	}
 
 	// Start Claude Code and run it through PTY
 	cmd := exec.CommandContext(ctx, "claude")
