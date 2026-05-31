@@ -23,6 +23,8 @@ func Start(ctx context.Context) {
 		}
 	})
 
+	msgCh := make(chan string, 1)
+
 	wg.Go(func() {
 		if err := agent.Spawn(ctx); err != nil {
 			fmt.Fprintf(os.Stderr, "failed to run agent: %v", err)
@@ -32,7 +34,14 @@ func Start(ctx context.Context) {
 	})
 
 	wg.Go(func() {
-		pet.Render(cancelCtx, aiInstance)
+		pet.Render(cancelCtx, msgCh)
+	})
+
+	wg.Go(func() {
+		if err := pet.Listen(cancelCtx, msgCh); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to listen for socket: %v", err)
+			os.Exit(1)
+		}
 	})
 
 	wg.Wait()

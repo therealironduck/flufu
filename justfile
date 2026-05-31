@@ -2,12 +2,12 @@
 default:
     @just --list
 
-run cmd="":
+run *args:
     #!/usr/bin/env bash
     if [ ! -d "./lib" ]; then
         just prepare
     fi
-    YZMA_LIB=./lib go run ./main.go {{ cmd }}
+    YZMA_LIB=./lib go run ./main.go {{ args }}
 
 prepare:
     #!/usr/bin/env bash
