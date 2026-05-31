@@ -22,6 +22,7 @@ func Spawn(ctx context.Context) error {
 	if err := registerHooks(); err != nil {
 		return fmt.Errorf("register hooks: %w", err)
 	}
+	defer removeHooks()
 
 	// Start Claude Code and run it through PTY
 	cmd := exec.CommandContext(ctx, "claude")

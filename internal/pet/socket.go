@@ -38,7 +38,7 @@ func Listen(ctx context.Context) error {
 	con, err := ln.Accept()
 	if err != nil {
 		if ctx.Err() != nil {
-			return fmt.Errorf("context error: %w", err)
+			return nil
 		}
 
 		return fmt.Errorf("cant accept unix socket connection: %w", err)

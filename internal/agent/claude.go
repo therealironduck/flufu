@@ -32,13 +32,60 @@ type settingsFile struct {
 	Hooks       map[string][]hookEntry `json:"hooks,omitempty"`
 }
 
-func registerHooks() error {
+func selfCmd() (string, error) {
 	exe, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("get executable path: %w", err)
+		return "", fmt.Errorf("get executable path: %w", err)
 	}
 
-	pid := os.Getpid()
+	return fmt.Sprintf("%s msg %d", exe, os.Getpid()), nil
+}
+
+func removeHooks() {
+	ownCommand, err := selfCmd()
+	if err != nil {
+		return
+	}
+
+	data, err := os.ReadFile(settingsPath)
+	if err != nil {
+		return
+	}
+
+	var s settingsFile
+	if err := json.Unmarshal(data, &s); err != nil {
+		return
+	}
+
+	filtered := make([]hookEntry, 0, len(s.Hooks["Stop"]))
+	for _, entry := range s.Hooks["Stop"] {
+		isOwn := false
+		for _, h := range entry.Hooks {
+			if h.Command == ownCommand {
+				isOwn = true
+				break
+			}
+		}
+		if !isOwn {
+			filtered = append(filtered, entry)
+		}
+	}
+
+	s.Hooks["Stop"] = filtered
+
+	out, err := json.MarshalIndent(s, "", "  ")
+	if err != nil {
+		return
+	}
+
+	_ = os.WriteFile(settingsPath, out, settingsFilePerm)
+}
+
+func registerHooks() error {
+	cmd, err := selfCmd()
+	if err != nil {
+		return err
+	}
 
 	var s settingsFile
 	data, err := os.ReadFile(settingsPath)
@@ -56,37 +103,22 @@ func registerHooks() error {
 		s.Hooks = make(map[string][]hookEntry)
 	}
 
-	// Replace any existing idle_prompt Notification hook with the current pid/exe.
-	existing := s.Hooks["Stop"]
-	filtered := make([]hookEntry, 0, len(existing))
-	for _, entry := range existing {
-		if entry.Matcher != "idle_prompt" {
-			filtered = append(filtered, entry)
-		}
-	}
-
-	filtered = append(filtered, hookEntry{
-		Matcher: "",
-		Hooks: []hookCommand{
-			{
-				Type:    "command",
-				Command: fmt.Sprintf("%s msg %d", exe, pid),
-			},
-		},
-	})
-	s.Hooks["Stop"] = filtered
+	// Replace any existing Stop hook with the current pid/exe.
+	s.Hooks["Stop"] = []hookEntry{{
+		Hooks: []hookCommand{{Type: "command", Command: cmd}},
+	}}
 
 	if err := os.MkdirAll(".claude", settingsDirPerm); err != nil {
-		return fmt.Errorf("create .claude dir: %w", err)
+		return fmt.Errorf("error creating .claude dir: %w", err)
 	}
 
 	out, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
-		return fmt.Errorf("marshal settings: %w", err)
+		return fmt.Errorf("error marshal settings: %w", err)
 	}
 
 	if err := os.WriteFile(settingsPath, out, settingsFilePerm); err != nil {
-		return fmt.Errorf("write settings: %w", err)
+		return fmt.Errorf("error writing settings: %w", err)
 	}
 
 	return nil
