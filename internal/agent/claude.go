@@ -38,7 +38,7 @@ func selfCmd() (string, error) {
 		return "", fmt.Errorf("get executable path: %w", err)
 	}
 
-	return fmt.Sprintf("%s msg %d", exe, os.Getpid()), nil
+	return fmt.Sprintf(`sh -c '%s msg %d "$(jq -r .transcript_path)"'`, exe, os.Getpid()), nil
 }
 
 func removeHooks() {

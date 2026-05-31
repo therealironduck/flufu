@@ -55,7 +55,7 @@ func Listen(ctx context.Context) error {
 	return nil
 }
 
-func Send(ctx context.Context, pid int) error {
+func Send(ctx context.Context, pid int, message string) error {
 	d := net.Dialer{}
 	con, err := d.DialContext(ctx, "unix", getSocketForPid(pid))
 	if err != nil {
@@ -63,7 +63,7 @@ func Send(ctx context.Context, pid int) error {
 	}
 	defer con.Close()
 
-	if _, err = fmt.Fprint(con, "Hello I am a duck"); err != nil {
+	if _, err = fmt.Fprint(con, message); err != nil {
 		return fmt.Errorf("cant write to flufu socket: %w", err)
 	}
 
