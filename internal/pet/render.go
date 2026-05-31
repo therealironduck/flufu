@@ -29,8 +29,10 @@ func Render(ctx context.Context, msgCh <-chan string) {
 	var (
 		currentMsg    string
 		lastBubblePos bubblePos
-		msgExpiry     time.Time
+		msgExpiry     = time.Now().Add(msgDuration)
 	)
+
+	currentMsg = "Ahoy!"
 
 	for {
 		select {
