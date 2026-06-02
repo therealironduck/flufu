@@ -43,6 +43,16 @@ Three concurrent goroutines coordinated by `internal/orchestrator/apps.go`, all 
 
 The `chat` subcommand (`cmd/chat.go`) runs the full AI init+generate flow interactively for testing without launching Claude Code.
 
+### IPC: hook → socket → pet
+
+When the agent starts, `internal/agent/claude.go:registerHooks()` injects a `Stop` hook into `.claude/settings.local.json`. After each Claude response, Claude Code fires:
+
+```
+flufu msg <pid> <transcript_path>
+```
+
+The `msg` subcommand (`cmd/msg.go`) calls `agent.ReadNewestUserMessageFromTranscript` to reverse-scan the JSONL transcript for the latest user message, then sends it over a Unix domain socket (`/tmp/flufu-<pid>.sock`) via `pet.Send`. The pet goroutine calls `pet.Listen` at startup, which reads from that socket and forwards messages into a channel that `render.go` consumes to display in the speech bubble. On shutdown, `removeHooks()` removes the injected hook from the settings file.
+
 ### Config
 
 `internal/config/load.go` resolves config/data paths: XDG first, falling back to `<exe>/`. Used for model file storage.

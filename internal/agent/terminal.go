@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/creack/pty"
+	"github.com/therealironduck/flufu/internal/tty"
 	"golang.org/x/term"
 )
 
@@ -100,7 +101,7 @@ func handleOutput(ptmx *os.File) {
 	for {
 		n, err := ptmx.Read(buf)
 		if n > 0 {
-			_, err = os.Stdout.Write(buf[:n])
+			tty.Write(buf[:n])
 		}
 		if err != nil {
 			return

@@ -8,6 +8,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/therealironduck/flufu/internal/tty"
 	"golang.org/x/term"
 )
 
@@ -100,7 +101,7 @@ func clearOverlay(petKey string, frame int) {
 	}
 
 	buf.WriteString("\0338")
-	os.Stdout.WriteString(buf.String())
+	tty.WriteString(buf.String())
 }
 
 func drawOverlay(petKey string, frame int) {
@@ -115,5 +116,5 @@ func drawOverlay(petKey string, frame int) {
 	}
 
 	buf.WriteString("\0338")
-	os.Stdout.WriteString(buf.String())
+	tty.WriteString(buf.String())
 }

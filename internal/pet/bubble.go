@@ -2,9 +2,10 @@ package pet
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/therealironduck/flufu/internal/tty"
 )
 
 const (
@@ -110,7 +111,7 @@ func drawBubble(petKey string, frame int, joke string) bubblePos {
 	fmt.Fprintf(&buf, "\033[%d;%dH\\", startRow, pos.tailCol)
 
 	buf.WriteString("\0338")
-	os.Stdout.WriteString(buf.String())
+	tty.WriteString(buf.String())
 
 	return pos
 }
@@ -133,5 +134,5 @@ func clearBubble(pos bubblePos) {
 	fmt.Fprintf(&buf, "\033[%d;%dH ", pos.tailRow, pos.tailCol)
 
 	buf.WriteString("\0338")
-	os.Stdout.WriteString(buf.String())
+	tty.WriteString(buf.String())
 }
