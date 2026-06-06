@@ -5,7 +5,7 @@ go 1.26.3
 require (
 	github.com/adrg/xdg v0.5.3
 	github.com/creack/pty v1.1.24
-	github.com/hybridgroup/yzma v1.14.1
+	github.com/hybridgroup/yzma v1.15.0
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/term v0.43.0
 )
